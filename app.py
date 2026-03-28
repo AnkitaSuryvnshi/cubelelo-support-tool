@@ -150,7 +150,7 @@ elif page == "Manager Insights":
     st.subheader("Summary")
 
     summary = f"""
-    - {top_issue} is the most frequent issue with {top_issue_percent}% share.
+    - {top_issue} is the most frequent issue.
     - {unresolved_count} out of {total_tickets} tickets remain unresolved.
     - {high_priority_unresolved} high-priority tickets require immediate attention.
     - {len(delivery_issues)} delivery-related complaints observed.
