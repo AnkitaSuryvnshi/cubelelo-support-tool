@@ -1,5 +1,5 @@
 # =============================
-# Cubelelo Support Insights Tool (FINAL - SIDEBAR + NO %)
+# Cubelelo Support Insights Tool (FINAL - FIXED CATEGORY)
 # =============================
 
 import pandas as pd
@@ -13,11 +13,25 @@ def load_data():
 
 df = load_data()
 
+# Clean columns + nulls
 df.columns = df.columns.str.strip()
 df = df.fillna("")
 
 # -----------------------------
-# SIDEBAR NAVIGATION
+# 🔥 CATEGORY NORMALIZATION FIX
+# -----------------------------
+df['Category'] = df['Category'].str.lower().str.strip()
+
+df['Category'] = df['Category'].replace({
+    'product quality issue': 'product quality',
+    'quality issue': 'product quality',
+    'defective product': 'product quality',
+    'damaged product': 'product quality',
+    'product defect': 'product quality'
+})
+
+# -----------------------------
+# SIDEBAR
 # -----------------------------
 st.sidebar.title("📂 Navigation")
 page = st.sidebar.radio("Go to", [
@@ -38,7 +52,7 @@ high_priority_unresolved = len(unresolved[unresolved['Priority'] == 'High'])
 top_issues = df['Category'].value_counts()
 
 # -----------------------------
-# DASHBOARD PAGE
+# DASHBOARD
 # -----------------------------
 if page == "Dashboard":
 
@@ -59,7 +73,7 @@ if page == "Dashboard":
 
 
 # -----------------------------
-# UNRESOLVED PAGE
+# UNRESOLVED
 # -----------------------------
 elif page == "Unresolved Tickets":
 
@@ -84,7 +98,7 @@ elif page == "Unresolved Tickets":
 
 
 # -----------------------------
-# RISK ANALYSIS PAGE
+# RISK
 # -----------------------------
 elif page == "Risk Analysis":
 
@@ -120,7 +134,7 @@ elif page == "Risk Analysis":
 
 
 # -----------------------------
-# MANAGER INSIGHTS PAGE (NO %)
+# MANAGER INSIGHTS
 # -----------------------------
 elif page == "Manager Insights":
 
@@ -129,8 +143,8 @@ elif page == "Manager Insights":
     top_issue = top_issues.idxmax()
     top_issue_count = top_issues.max()
 
-    delivery_issues = df[df['Category'].str.lower().str.contains("delivery")]
-    refund_issues = df[df['Category'].str.lower().str.contains("refund|replacement")]
+    delivery_issues = df[df['Category'].str.contains("delivery")]
+    refund_issues = df[df['Category'].str.contains("refund|replacement")]
 
     # Top issue
     if top_issue_count > 5:
