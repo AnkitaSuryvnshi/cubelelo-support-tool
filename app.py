@@ -1,10 +1,9 @@
 # =============================
-# Cubelelo Support Insights Tool (FINAL FIXED)
+# Cubelelo Support Insights Tool (ULTIMATE FINAL)
 # =============================
 
 import pandas as pd
 import streamlit as st
-import os
 
 # -----------------------------
 # Load Data
@@ -15,7 +14,7 @@ def load_data():
 
 df = load_data()
 
-# Clean column names + handle nulls
+# Clean data
 df.columns = df.columns.str.strip()
 df = df.fillna("")
 
@@ -36,11 +35,9 @@ st.header("Unresolved Tickets")
 unresolved = df[df['Status'] != 'Resolved'].copy()
 
 def get_reason(issue):
-    if pd.isna(issue) or issue == "":
+    if issue == "":
         return "No data"
-    
     issue = str(issue).lower()
-
     if "delay" in issue:
         return "Logistics delay"
     elif "refund" in issue:
@@ -91,20 +88,20 @@ aging = {
 st.write(aging)
 
 # -----------------------------
-# Smart Alerts
+# Alerts
 # -----------------------------
 st.header("Alerts")
 
 alerts = []
 
 if top_issues.max() > 5:
-    alerts.append("⚠️ High complaints in a category detected")
+    alerts.append("High complaints detected in a category")
 
 if len(unresolved) > 10:
-    alerts.append("⚠️ Too many unresolved tickets")
+    alerts.append("Too many unresolved tickets")
 
 for alert in alerts:
-    st.warning(alert)
+    st.warning("⚠️ " + alert)
 
 # -----------------------------
 # Product Insights
@@ -115,44 +112,70 @@ product_issues = df['Product'].value_counts().head(5)
 st.bar_chart(product_issues)
 
 # -----------------------------
-# Manager Summary (AI + Fallback)
+# SMART Manager Summary
 # -----------------------------
 st.header("Manager Summary")
 
-try:
-    from openai import OpenAI
-    client = OpenAI()
+total_tickets = len(df)
+unresolved_count = len(unresolved)
+high_priority_unresolved = len(unresolved[unresolved['Priority'] == 'High'])
 
-    summary_input = (
-        "Top Issues: " + str(top_issues.to_dict()) + "\\n" +
-        "Unresolved Tickets: " + str(len(unresolved)) + "\\n" +
-        "High Priority Unresolved: " + str(len(unresolved[unresolved['Priority'] == 'High']))
-    )
+top_issue = top_issues.idxmax()
+top_issue_count = top_issues.max()
+top_issue_percent = round((top_issue_count / total_tickets) * 100, 1)
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "Give a short 4-5 line summary for a busy manager."},
-            {"role": "user", "content": summary_input}
-        ]
-    )
+unresolved_percent = round((unresolved_count / total_tickets) * 100, 1)
 
-    st.success(response.choices[0].message.content)
+delivery_issues = df[df['Category'].str.lower().str.contains("delivery")]
+refund_issues = df[df['Category'].str.lower().str.contains("refund|replacement")]
 
-except:
-    # fallback summary
-    most_common_issue = top_issues.idxmax()
-    unresolved_count = len(unresolved)
-    high_priority_unresolved = len(unresolved[unresolved['Priority'] == 'High'])
+# -----------------------------
+# COLOR CODED INSIGHTS
+# -----------------------------
 
-    fallback = f"""
-Most complaints are related to {most_common_issue}.
-{unresolved_count} tickets remain unresolved, including {high_priority_unresolved} high-priority cases.
-Delivery and refund issues indicate operational bottlenecks.
-Immediate focus needed on critical tickets and root causes.
-"""
+# Top issue
+if top_issue_percent > 30:
+    st.error(f"🔴 {top_issue} is the biggest issue ({top_issue_percent}% of tickets)")
+else:
+    st.info(f"🟢 {top_issue} is under control ({top_issue_percent}%)")
 
-    st.info(fallback)
+# Unresolved
+if unresolved_percent > 40:
+    st.error(f"🔴 {unresolved_count}/{total_tickets} tickets unresolved ({unresolved_percent}%)")
+else:
+    st.warning(f"🟡 {unresolved_count}/{total_tickets} tickets unresolved")
+
+# High priority
+if high_priority_unresolved > 5:
+    st.error(f"🔴 {high_priority_unresolved} high-priority tickets pending")
+else:
+    st.info(f"🟢 High-priority tickets under control ({high_priority_unresolved})")
+
+# Delivery
+st.warning(f"🚚 {len(delivery_issues)} delivery-related issues found")
+
+# Refund
+st.warning(f"💸 {len(refund_issues)} refund/replacement cases found")
+
+# -----------------------------
+# AUTO RECOMMENDATIONS
+# -----------------------------
+st.header("Recommended Actions")
+
+if top_issue_percent > 30:
+    st.write("👉 Improve product quality checks and supplier control")
+
+if unresolved_percent > 40:
+    st.write("👉 Increase support team response speed")
+
+if high_priority_unresolved > 5:
+    st.write("👉 Escalate high-priority tickets immediately")
+
+if len(delivery_issues) > 3:
+    st.write("👉 Review logistics and delivery partners")
+
+if len(refund_issues) > 3:
+    st.write("👉 Optimize refund and replacement workflow")
 
 # -----------------------------
 # Run:
