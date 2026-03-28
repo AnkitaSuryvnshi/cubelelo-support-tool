@@ -1,17 +1,23 @@
-# Cubelelo Support Insights Tool (FINAL - FIXED FOR DATASET)
+# =============================
+# Cubelelo Support Insights Tool (FINAL FIXED)
+# =============================
 
 import pandas as pd
 import streamlit as st
 import os
 
+# -----------------------------
+# Load Data
+# -----------------------------
 @st.cache_data
 def load_data():
     return pd.read_csv("Dataset - Sheet1.csv")
 
 df = load_data()
 
-# Clean column names
+# Clean column names + handle nulls
 df.columns = df.columns.str.strip()
+df = df.fillna("")
 
 st.title("📊 Cubelelo Support Insights Dashboard")
 
@@ -30,7 +36,11 @@ st.header("Unresolved Tickets")
 unresolved = df[df['Status'] != 'Resolved'].copy()
 
 def get_reason(issue):
-    issue = issue.lower()
+    if pd.isna(issue) or issue == "":
+        return "No data"
+    
+    issue = str(issue).lower()
+
     if "delay" in issue:
         return "Logistics delay"
     elif "refund" in issue:
@@ -53,7 +63,7 @@ def risk_score(row):
     score = 0
     if row['Priority'] == 'High':
         score += 3
-    if "refund" in row['Category'].lower():
+    if "refund" in str(row['Category']).lower():
         score += 2
     if row['Status'] != 'Resolved':
         score += 2
@@ -69,7 +79,7 @@ st.dataframe(top_risk)
 # -----------------------------
 st.header("Aging Analysis")
 
-df['Date'] = pd.to_datetime(df['Date'])
+df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['Days Open'] = (pd.Timestamp.today() - df['Date']).dt.days
 
 aging = {
@@ -105,7 +115,7 @@ product_issues = df['Product'].value_counts().head(5)
 st.bar_chart(product_issues)
 
 # -----------------------------
-# AI Manager Summary
+# Manager Summary (AI + Fallback)
 # -----------------------------
 st.header("Manager Summary")
 
@@ -114,8 +124,8 @@ try:
     client = OpenAI()
 
     summary_input = (
-        "Top Issues: " + str(top_issues.to_dict()) + "\n" +
-        "Unresolved Tickets: " + str(len(unresolved)) + "\n" +
+        "Top Issues: " + str(top_issues.to_dict()) + "\\n" +
+        "Unresolved Tickets: " + str(len(unresolved)) + "\\n" +
         "High Priority Unresolved: " + str(len(unresolved[unresolved['Priority'] == 'High']))
     )
 
@@ -130,6 +140,7 @@ try:
     st.success(response.choices[0].message.content)
 
 except:
+    # fallback summary
     most_common_issue = top_issues.idxmax()
     unresolved_count = len(unresolved)
     high_priority_unresolved = len(unresolved[unresolved['Priority'] == 'High'])
