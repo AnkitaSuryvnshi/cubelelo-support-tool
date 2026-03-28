@@ -1,30 +1,11 @@
 # =============================
-# Cubelelo Support Insights Tool (DARK UI FINAL)
+# Cubelelo Support Insights Tool (FINAL FIXED + SMART LOGIC)
 # =============================
 
 import pandas as pd
 import streamlit as st
 
-# -----------------------------
-# PAGE CONFIG
-# -----------------------------
 st.set_page_config(page_title="Cubelelo Dashboard", layout="wide")
-
-# -----------------------------
-# DARK THEME + COMPACT UI
-# -----------------------------
-st.markdown("""
-<style>
-body {
-    background-color: #0E1117;
-    color: white;
-}
-.block-container {
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
-}
-</style>
-""", unsafe_allow_html=True)
 
 # -----------------------------
 # LOAD DATA
@@ -39,13 +20,13 @@ df.columns = df.columns.str.strip()
 df = df.fillna("")
 
 # -----------------------------
-# SIDEBAR NAVIGATION
+# SIDEBAR
 # -----------------------------
-st.sidebar.title("📂 Navigation")
+st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", [
     "Dashboard",
-    "Unresolved Tickets",
-    "Risk Analysis",
+    "Unresolved",
+    "Risk",
     "Manager Insights"
 ])
 
@@ -60,32 +41,26 @@ high_priority_unresolved = len(unresolved[unresolved['Priority'] == 'High'])
 top_issues = df['Category'].value_counts()
 
 # -----------------------------
-# DASHBOARD PAGE
+# DASHBOARD
 # -----------------------------
 if page == "Dashboard":
 
-    st.title("📊 Cubelelo Support Dashboard")
+    st.title("Cubelelo Support Dashboard")
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Tickets", total_tickets)
     col2.metric("Unresolved", unresolved_count)
     col3.metric("High Priority", high_priority_unresolved)
 
-    st.divider()
-
-    st.subheader("📊 Top Issue Categories")
     st.bar_chart(top_issues)
-
-    st.subheader("📦 Product Complaints")
     st.bar_chart(df['Product'].value_counts().head(5))
 
-
 # -----------------------------
-# UNRESOLVED PAGE
+# UNRESOLVED
 # -----------------------------
-elif page == "Unresolved Tickets":
+elif page == "Unresolved":
 
-    st.title("📋 Unresolved Tickets")
+    st.title("Unresolved Tickets")
 
     def get_reason(issue):
         if issue == "":
@@ -104,13 +79,12 @@ elif page == "Unresolved Tickets":
 
     st.dataframe(unresolved[['Ticket ID', 'Category', 'Priority', 'Reason']])
 
-
 # -----------------------------
-# RISK ANALYSIS PAGE
+# RISK
 # -----------------------------
-elif page == "Risk Analysis":
+elif page == "Risk":
 
-    st.title("🚨 Risk Analysis")
+    st.title("Risk Analysis")
 
     def risk_score(row):
         score = 0
@@ -124,71 +98,63 @@ elif page == "Risk Analysis":
 
     unresolved['Risk Score'] = unresolved.apply(risk_score, axis=1)
 
-    st.subheader("Top Risk Tickets")
     st.dataframe(unresolved.sort_values(by='Risk Score', ascending=False).head(5))
 
-    st.subheader("⏳ Aging Analysis")
-
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-    df['Days Open'] = (pd.Timestamp.today() - df['Date']).dt.days
-
-    aging = {
-        "<1 day": len(df[df['Days Open'] <= 1]),
-        "1-3 days": len(df[(df['Days Open'] > 1) & (df['Days Open'] <= 3)]),
-        ">3 days": len(df[df['Days Open'] > 3])
-    }
-
-    st.write(aging)
-
-
 # -----------------------------
-# MANAGER INSIGHTS PAGE
+# MANAGER INSIGHTS (SMART FIX)
 # -----------------------------
 elif page == "Manager Insights":
 
-    st.title("🧠 Manager Insights")
+    st.title("Manager Insights")
 
-    top_issue = top_issues.idxmax()
-    top_issue_percent = round((top_issues.max() / total_tickets) * 100, 1)
+    # ---- TOP ISSUE LOGIC (FIXED)
+    top_two = top_issues.head(2)
+
+    top_issue = top_two.index[0]
+    top_issue_count = top_two.iloc[0]
+    second_issue_count = top_two.iloc[1] if len(top_two) > 1 else 0
+
+    top_issue_percent = round((top_issue_count / total_tickets) * 100, 1)
+
+    if top_issue_count >= second_issue_count * 1.5:
+        st.error(f"{top_issue} is dominating issue ({top_issue_percent}%)")
+    elif top_issue_count > second_issue_count:
+        st.warning(f"{top_issue} is leading issue ({top_issue_percent}%)")
+    else:
+        st.success("Issues are evenly distributed")
+
+    # ---- UNRESOLVED LOGIC (IMPROVED)
     unresolved_percent = round((unresolved_count / total_tickets) * 100, 1)
 
+    if unresolved_percent > 50:
+        st.error(f"{unresolved_count}/{total_tickets} unresolved ({unresolved_percent}%)")
+    elif unresolved_percent > 25:
+        st.warning(f"{unresolved_count}/{total_tickets} unresolved ({unresolved_percent}%)")
+    else:
+        st.success("Unresolved tickets under control")
+
+    # ---- HIGH PRIORITY
+    if high_priority_unresolved > 5:
+        st.error(f"{high_priority_unresolved} high-priority pending")
+    else:
+        st.success("High-priority under control")
+
+    # ---- PATTERNS
     delivery_issues = df[df['Category'].str.lower().str.contains("delivery")]
     refund_issues = df[df['Category'].str.lower().str.contains("refund|replacement")]
 
-    # Compact colored insights
-    if top_issue_percent > 30:
-        st.error(f"🔴 {top_issue} highest issue ({top_issue_percent}%)")
-    else:
-        st.success(f"🟢 {top_issue} under control ({top_issue_percent}%)")
+    st.info(f"Delivery Issues: {len(delivery_issues)}")
+    st.info(f"Refund Issues: {len(refund_issues)}")
 
-    if unresolved_percent > 40:
-        st.error(f"🔴 {unresolved_count}/{total_tickets} unresolved ({unresolved_percent}%)")
-    else:
-        st.warning(f"🟡 {unresolved_count}/{total_tickets} unresolved")
+    # ---- SUMMARY (DATA-DRIVEN)
+    st.subheader("Summary")
 
-    if high_priority_unresolved > 5:
-        st.error(f"🔴 {high_priority_unresolved} high-priority pending")
-    else:
-        st.success(f"🟢 High-priority under control ({high_priority_unresolved})")
+    summary = f"""
+    - {top_issue} is the most frequent issue with {top_issue_percent}% share.
+    - {unresolved_count} out of {total_tickets} tickets remain unresolved.
+    - {high_priority_unresolved} high-priority tickets require immediate attention.
+    - {len(delivery_issues)} delivery-related complaints observed.
+    - {len(refund_issues)} refund/replacement delays identified.
+    """
 
-    st.info(f"🚚 Delivery Issues: {len(delivery_issues)}")
-    st.info(f"💸 Refund Issues: {len(refund_issues)}")
-
-    st.divider()
-
-    st.subheader("✅ Recommended Actions")
-
-    if top_issue_percent > 30:
-        st.write("👉 Improve product quality checks")
-
-    if unresolved_percent > 40:
-        st.write("👉 Increase support response speed")
-
-    if high_priority_unresolved > 5:
-        st.write("👉 Escalate high-priority tickets")
-
-    if len(delivery_issues) > 3:
-        st.write("👉 Fix logistics/delivery partners")
-
-    if len(refund_issues) > 3:
-        st.write("👉 Improve refund process")
+    st.success(summary)
