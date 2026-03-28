@@ -1,43 +1,30 @@
 # =============================
-# Cubelelo Support Insights Tool (FINAL UI + LOGIC)
+# Cubelelo Support Insights Tool (FINAL UI + CLEAN SUMMARY)
 # =============================
 
 import pandas as pd
 import streamlit as st
 
-# -----------------------------
-# PAGE CONFIG (UI TEMPLATE)
-# -----------------------------
 st.set_page_config(page_title="Cubelelo Dashboard", layout="wide")
 
-# -----------------------------
-# Load Data
-# -----------------------------
 @st.cache_data
 def load_data():
     return pd.read_csv("Dataset - Sheet1.csv")
 
 df = load_data()
 
-# Clean data
 df.columns = df.columns.str.strip()
 df = df.fillna("")
 
-# -----------------------------
-# BASIC CALCULATIONS
-# -----------------------------
 unresolved = df[df['Status'] != 'Resolved'].copy()
+
 total_tickets = len(df)
 unresolved_count = len(unresolved)
 high_priority_unresolved = len(unresolved[unresolved['Priority'] == 'High'])
 
-# -----------------------------
-# HEADER + METRICS (UI)
-# -----------------------------
 st.title("📊 Cubelelo Support Dashboard")
 
 col1, col2, col3 = st.columns(3)
-
 col1.metric("Total Tickets", total_tickets)
 col2.metric("Unresolved Tickets", unresolved_count)
 col3.metric("High Priority", high_priority_unresolved)
@@ -45,7 +32,7 @@ col3.metric("High Priority", high_priority_unresolved)
 st.divider()
 
 # -----------------------------
-# Top Issue Categories
+# Top Issues
 # -----------------------------
 st.header("📊 Top Issue Categories")
 top_issues = df['Category'].value_counts()
@@ -74,7 +61,7 @@ unresolved['Reason'] = unresolved['Category'].apply(get_reason)
 st.dataframe(unresolved[['Ticket ID', 'Category', 'Priority', 'Reason']])
 
 # -----------------------------
-# Risk Scoring
+# Risk Tickets
 # -----------------------------
 st.header("🚨 Top Risk Tickets")
 
@@ -94,7 +81,7 @@ top_risk = unresolved.sort_values(by='Risk Score', ascending=False).head(5)
 st.dataframe(top_risk)
 
 # -----------------------------
-# Aging Analysis
+# Aging
 # -----------------------------
 st.header("⏳ Aging Analysis")
 
@@ -129,7 +116,7 @@ product_issues = df['Product'].value_counts().head(5)
 st.bar_chart(product_issues)
 
 # -----------------------------
-# SMART MANAGER SUMMARY
+# MANAGER INSIGHTS (CLEAN VERSION)
 # -----------------------------
 st.header("🧠 Manager Insights")
 
@@ -140,19 +127,15 @@ unresolved_percent = round((unresolved_count / total_tickets) * 100, 1)
 delivery_issues = df[df['Category'].str.lower().str.contains("delivery")]
 refund_issues = df[df['Category'].str.lower().str.contains("refund|replacement")]
 
-# COLOR LOGIC
-if top_issue_percent > 30:
-    st.error(f"🔴 {top_issue} is highest issue ({top_issue_percent}%)")
-else:
-    st.info(f"🟢 {top_issue} under control ({top_issue_percent}%)")
+summary = f"""
+- {top_issue} is the most common issue, contributing {top_issue_percent}% of total tickets.
+- {unresolved_count} out of {total_tickets} tickets ({unresolved_percent}%) are still unresolved.
+- {high_priority_unresolved} high-priority tickets are pending and need immediate attention.
+- {len(delivery_issues)} delivery-related issues indicate logistics inefficiencies.
+- {len(refund_issues)} refund/replacement cases suggest process delays.
+"""
 
-if unresolved_percent > 40:
-    st.error(f"🔴 {unresolved_count}/{total_tickets} unresolved ({unresolved_percent}%)")
-else:
-    st.warning(f"🟡 {unresolved_count}/{total_tickets} unresolved")
-
-st.warning(f"🚚 Delivery Issues: {len(delivery_issues)}")
-st.warning(f"💸 Refund Issues: {len(refund_issues)}")
+st.success(summary)
 
 # -----------------------------
 # RECOMMENDATIONS
@@ -173,8 +156,3 @@ if len(delivery_issues) > 3:
 
 if len(refund_issues) > 3:
     st.write("👉 Improve refund process")
-
-# -----------------------------
-# RUN:
-# streamlit run app.py
-# -----------------------------
