@@ -1,5 +1,5 @@
 # =============================
-# Cubelelo Support Insights Tool (FINAL - WITH ALERT SYSTEM)
+# Cubelelo Support Insights Tool (FINAL - ALERT IN MANAGER INSIGHTS)
 # =============================
 
 import pandas as pd
@@ -65,37 +65,9 @@ if page == "Dashboard":
 
     st.divider()
 
-    # -----------------------------
-    # 🔔 ALERT SYSTEM (ADDED)
-    # -----------------------------
-    st.header("⚠️ Alerts")
-
-    if unresolved_count > 10:
-        st.error("🔴 High number of unresolved tickets – immediate action required")
-
-    if high_priority_unresolved > 5:
-        st.error("🔴 High-priority tickets pending")
-
-    # Aging alert
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-    old_tickets = len(df[(df['Date'] < pd.Timestamp.today() - pd.Timedelta(days=3)) & (df['Status'] != 'Resolved')])
-
-    if old_tickets > 3:
-        st.warning(f"🟡 {old_tickets} tickets pending for more than 3 days")
-
-    # Category spike alert
-    if top_issues.max() > 5:
-        st.warning("🟡 High complaints detected in a category")
-
-    # -----------------------------
-    # Top Issues
-    # -----------------------------
     st.header("📊 Top Issue Categories")
     st.bar_chart(top_issues)
 
-    # -----------------------------
-    # Product Insights
-    # -----------------------------
     st.header("📦 Product Complaint Ranking")
     st.bar_chart(df['Product'].value_counts().head(5))
 
@@ -168,19 +140,40 @@ elif page == "Manager Insights":
 
     st.title("🧠 Manager Insights")
 
+    # -----------------------------
+    # 🔔 ALERT SYSTEM (ADDED HERE)
+    # -----------------------------
+    st.subheader("⚠️ Alerts")
+
+    if unresolved_count > 10:
+        st.error("🔴 High number of unresolved tickets – immediate action required")
+
+    if high_priority_unresolved > 5:
+        st.error("🔴 High-priority tickets pending")
+
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+    old_tickets = len(df[(df['Date'] < pd.Timestamp.today() - pd.Timedelta(days=3)) & (df['Status'] != 'Resolved')])
+
+    if old_tickets > 3:
+        st.warning(f"🟡 {old_tickets} tickets pending for more than 3 days")
+
+    if top_issues.max() > 5:
+        st.warning("🟡 High complaints detected in a category")
+
+    # -----------------------------
+    # EXISTING LOGIC (UNCHANGED)
+    # -----------------------------
     top_issue = top_issues.idxmax()
     top_issue_count = top_issues.max()
 
     delivery_issues = df[df['Category'].str.contains("delivery")]
     refund_issues = df[df['Category'].str.contains("refund|replacement")]
 
-    # Top issue
     if top_issue_count > 5:
         st.error(f"🔴 {top_issue} is the major issue ({top_issue_count} tickets)")
     else:
         st.warning(f"🟡 {top_issue} is the leading issue ({top_issue_count} tickets)")
 
-    # Unresolved
     if unresolved_count > 10:
         st.error(f"🔴 {unresolved_count} tickets are unresolved")
     elif unresolved_count > 5:
@@ -188,17 +181,14 @@ elif page == "Manager Insights":
     else:
         st.success("🟢 Unresolved tickets under control")
 
-    # High priority
     if high_priority_unresolved > 5:
         st.error(f"🔴 {high_priority_unresolved} high-priority tickets pending")
     else:
         st.success(f"🟢 High-priority under control ({high_priority_unresolved})")
 
-    # Patterns
     st.info(f"🚚 Delivery Issues: {len(delivery_issues)}")
     st.info(f"💸 Refund Issues: {len(refund_issues)}")
 
-    # Summary
     st.subheader("Summary")
 
     summary = f"""
