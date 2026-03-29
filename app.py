@@ -1,6 +1,5 @@
 # =============================
-# Cubelelo Support Insights Tool (FINAL - FIXED CATEGORY)
-# =============================
+# Cubelelo Support Insights Tool 
 
 import pandas as pd
 import streamlit as st
@@ -18,8 +17,7 @@ df.columns = df.columns.str.strip()
 df = df.fillna("")
 
 # -----------------------------
-# 🔥 CATEGORY NORMALIZATION FIX
-# -----------------------------
+#  CATEGORY NORMALIZATION FIX
 df['Category'] = df['Category'].str.lower().str.strip()
 
 df['Category'] = df['Category'].replace({
