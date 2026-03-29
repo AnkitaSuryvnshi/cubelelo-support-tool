@@ -18,14 +18,46 @@ df = df.fillna("")
 
 # -----------------------------
 #  CATEGORY NORMALIZATION FIX
+# -----------------------------
+# CATEGORY NORMALIZATION FIX
 df['Category'] = df['Category'].str.lower().str.strip()
 
 df['Category'] = df['Category'].replace({
+    # PRODUCT QUALITY GROUP
     'product quality issue': 'product quality',
     'quality issue': 'product quality',
     'defective product': 'product quality',
     'damaged product': 'product quality',
-    'product defect': 'product quality'
+    'product defect': 'product quality',
+
+    # DELIVERY GROUP
+    'late delivery': 'delivery issue',
+    'delivery delay': 'delivery issue',
+    'delay in delivery': 'delivery issue',
+    'not delivered': 'delivery issue',
+    'delivery problem': 'delivery issue',
+
+    # REFUND GROUP
+    'refund issue': 'refund',
+    'refund not received': 'refund',
+    'refund delay': 'refund',
+    'refund pending': 'refund',
+
+    # REPLACEMENT GROUP
+    'replacement issue': 'replacement',
+    'replacement delay': 'replacement',
+    'wrong item received': 'replacement',
+    'item mismatch': 'replacement',
+
+    # PAYMENT GROUP
+    'payment failed': 'payment issue',
+    'payment issue': 'payment issue',
+    'transaction failed': 'payment issue',
+
+    # CUSTOMER SUPPORT GROUP
+    'no response': 'support issue',
+    'poor support': 'support issue',
+    'no reply': 'support issue'
 })
 
 # -----------------------------
