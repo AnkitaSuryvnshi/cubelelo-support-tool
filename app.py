@@ -1,5 +1,5 @@
 # =============================
-# Cubelelo Support Insights Tool (FINAL - FIXED CATEGORY)
+# Cubelelo Support Insights Tool (FINAL - WITH ALERT SYSTEM)
 # =============================
 
 import pandas as pd
@@ -52,7 +52,7 @@ high_priority_unresolved = len(unresolved[unresolved['Priority'] == 'High'])
 top_issues = df['Category'].value_counts()
 
 # -----------------------------
-# DASHBOARD
+# DASHBOARD PAGE
 # -----------------------------
 if page == "Dashboard":
 
@@ -65,15 +65,43 @@ if page == "Dashboard":
 
     st.divider()
 
+    # -----------------------------
+    # 🔔 ALERT SYSTEM (ADDED)
+    # -----------------------------
+    st.header("⚠️ Alerts")
+
+    if unresolved_count > 10:
+        st.error("🔴 High number of unresolved tickets – immediate action required")
+
+    if high_priority_unresolved > 5:
+        st.error("🔴 High-priority tickets pending")
+
+    # Aging alert
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+    old_tickets = len(df[(df['Date'] < pd.Timestamp.today() - pd.Timedelta(days=3)) & (df['Status'] != 'Resolved')])
+
+    if old_tickets > 3:
+        st.warning(f"🟡 {old_tickets} tickets pending for more than 3 days")
+
+    # Category spike alert
+    if top_issues.max() > 5:
+        st.warning("🟡 High complaints detected in a category")
+
+    # -----------------------------
+    # Top Issues
+    # -----------------------------
     st.header("📊 Top Issue Categories")
     st.bar_chart(top_issues)
 
+    # -----------------------------
+    # Product Insights
+    # -----------------------------
     st.header("📦 Product Complaint Ranking")
     st.bar_chart(df['Product'].value_counts().head(5))
 
 
 # -----------------------------
-# UNRESOLVED
+# UNRESOLVED PAGE
 # -----------------------------
 elif page == "Unresolved Tickets":
 
@@ -98,7 +126,7 @@ elif page == "Unresolved Tickets":
 
 
 # -----------------------------
-# RISK
+# RISK ANALYSIS PAGE
 # -----------------------------
 elif page == "Risk Analysis":
 
@@ -134,7 +162,7 @@ elif page == "Risk Analysis":
 
 
 # -----------------------------
-# MANAGER INSIGHTS
+# MANAGER INSIGHTS PAGE
 # -----------------------------
 elif page == "Manager Insights":
 
